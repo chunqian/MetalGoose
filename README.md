@@ -82,17 +82,12 @@ open MetalGoose.xcodeproj
    - Select anti-aliasing mode
 4. **Start Scaling**
    - Click "Start" to begin processing
-5. **Monitor Performance**
-   - Use the HUD overlay (⌘+H) to view real-time stats
 
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘ + H` | Toggle HUD overlay |
-| `⌘ + P` | Pause/Resume |
-| `⌘ + Q` | Quit |
-
+| `⌘ + T` | Toggle Scale |
 ## Building
 
 ### Prerequisites
