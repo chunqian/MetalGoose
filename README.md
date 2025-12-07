@@ -104,7 +104,7 @@ MetalGoose/
 
 ### Technology Stack
 - **SwiftUI** — Modern declarative UI
-- **Metal 3** — GPU-accelerated processing
+- **Metal 4** — GPU-accelerated processing
 - **ScreenCaptureKit** — Low-latency screen capture
 - **MetalPerformanceShaders** — Optimized GPU operations
 
