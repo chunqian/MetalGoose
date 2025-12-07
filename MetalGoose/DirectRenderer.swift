@@ -256,16 +256,11 @@ final class DirectRenderer: NSObject, MTKViewDelegate {
         var outputTexture: MTLTexture?
         var isInterpolatedFrame = false
         
-        let timeSinceLastRealFrame = startTime - lastRealFrameTime
-        let expectedFrameInterval = frameTimeAccumulator > 0 ? frameTimeAccumulator : 0.033
-        let shouldInterpolate = frameGenEnabled && previousTexture != nil && currentTexture != nil
-        
         if hasNew {
             if let processed = DirectEngine_ProcessFrame(engine, device, commandBuffer) {
                 previousTexture = currentTexture
                 currentTexture = processed
                 displayTexture = processed
-                outputTexture = processed
                 
                 let frameDelta = startTime - lastRealFrameTime
                 lastRealFrameTime = startTime
@@ -279,31 +274,32 @@ final class DirectRenderer: NSObject, MTKViewDelegate {
                     let targetFPS = frameGenType == .adaptive ? Double(DirectEngine_GetFrameGenMultiplier(engine)) * 30.0 : Double(frameGenMultiplier) * gameFPS
                     let calculatedMultiplier = max(1, Int(ceil(targetFPS / gameFPS)))
                     DirectEngine_SetTargetFrameMultiplier(engine, Int32(min(calculatedMultiplier, 4)))
-                }
-                
-                frameGenCycle = 0
-            } else {
-                outputTexture = displayTexture
-            }
-        } else if shouldInterpolate {
-            let effectiveMultiplier = frameGenType == .adaptive ? Int(DirectEngine_GetFrameGenMultiplier(engine)) : frameGenMultiplier
-            
-            if effectiveMultiplier > 1 {
-                let t = min(1.0, Float(timeSinceLastRealFrame / expectedFrameInterval))
-                let phase = Float(frameGenCycle + 1) / Float(effectiveMultiplier)
-                
-                frameGenCycle = (frameGenCycle + 1) % effectiveMultiplier
-                
-                if frameGenCycle > 0 {
-                    var isInterpolated = false
-                    if let interpTex = DirectEngine_GetInterpolatedFrameWithT(engine, device, commandBuffer, phase, &isInterpolated) {
-                        outputTexture = interpTex
-                        isInterpolatedFrame = isInterpolated
+                    
+                    let effectiveMultiplier = frameGenType == .adaptive ? Int(DirectEngine_GetFrameGenMultiplier(engine)) : frameGenMultiplier
+                    
+                    if effectiveMultiplier > 1 && previousTexture != nil {
+                        frameGenCycle += 1
+                        
+                        if frameGenCycle >= effectiveMultiplier {
+                            frameGenCycle = 0
+                            outputTexture = processed
+                        } else {
+                            let t = Float(frameGenCycle) / Float(effectiveMultiplier)
+                            var isInterpolated = false
+                            if let interpTex = DirectEngine_GetInterpolatedFrameWithT(engine, device, commandBuffer, t, &isInterpolated) {
+                                outputTexture = interpTex
+                                isInterpolatedFrame = isInterpolated
+                            } else {
+                                outputTexture = processed
+                            }
+                        }
                     } else {
-                        outputTexture = displayTexture
+                        frameGenCycle = 0
+                        outputTexture = processed
                     }
                 } else {
-                    outputTexture = displayTexture
+                    frameGenCycle = 0
+                    outputTexture = processed
                 }
             } else {
                 outputTexture = displayTexture
