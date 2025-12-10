@@ -552,17 +552,6 @@ id<MTLTexture> Engine::processFrame(id<MTLTexture> inputTexture,
   size_t outputHeight =
       config_.outputHeight > 0 ? config_.outputHeight : baseHeight;
 
-  static int logCounter = 0;
-  if (logCounter++ % 120 == 0) {
-    NSLog(@"[MG-DEBUG] processFrame: input=%zux%zu base=%zux%zu output=%zux%zu "
-          @"upscaleMode=%u upscaleFactor=%.2f renderScale=%.2f "
-          @"configBase=%ux%u configOut=%ux%u",
-          inputWidth, inputHeight, baseWidth, baseHeight, outputWidth,
-          outputHeight, static_cast<uint32_t>(config_.upscaleMode),
-          config_.upscaleFactor, config_.renderScaleFactor, config_.baseWidth,
-          config_.baseHeight, config_.outputWidth, config_.outputHeight);
-  }
-
   bool needsResize = (outputWidth != inputWidth || outputHeight != inputHeight);
   if (!needsResize && config_.upscaleFactor > 1.0f &&
       config_.upscaleMode != UpscaleMode::Off) {

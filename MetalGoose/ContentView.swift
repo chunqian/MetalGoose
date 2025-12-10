@@ -68,7 +68,7 @@ struct ContentView: View {
                                     InfoRow(label: String(localized: "FPS", defaultValue: "FPS"),
                                             value: currentFPS > 0 ? String(format: "%.1f", currentFPS) : "-")
 
-                                    if interpolatedFPS > 0 {
+                                    if interpolatedFPS > currentFPS {
                                         InfoRow(label: String(localized: "Interp FPS", defaultValue: "Interp FPS"),
                                                 value: String(format: "%.1f", interpolatedFPS))
                                     }
