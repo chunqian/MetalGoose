@@ -285,6 +285,26 @@ class MGHUDOverlayView: NSView {
             hudData.outputResolution = "\(Int(output.width))x\(Int(output.height))"
         }
     }
+    
+    func updateFromGooseEngine(stats: PipelineStats, settings: CaptureSettings) {
+        Task { @MainActor in
+            hudData.captureFPS = stats.captureFPS
+            hudData.outputFPS = stats.outputFPS
+            hudData.interpolatedFPS = stats.interpolatedFPS
+            hudData.frameTime = stats.frameTime
+            hudData.gpuTime = stats.gpuTime
+            hudData.captureLatency = stats.captureLatency
+            hudData.framesProcessed = stats.frameCount
+            hudData.framesDropped = stats.droppedFrames
+            hudData.framesInterpolated = stats.interpolatedFrameCount
+            
+            hudData.gpuMemoryUsed = stats.gpuMemoryUsed
+            hudData.gpuMemoryTotal = stats.gpuMemoryTotal
+            
+            hudData.upscaleMode = "mgup-1"
+            hudData.frameGenMode = settings.frameGenMode.rawValue
+        }
+    }
 }
 
 @available(macOS 26.0, *)
@@ -365,6 +385,10 @@ final class MGHUDWindowController {
     
     func setResolutions(capture: CGSize, output: CGSize) {
         hudView?.setResolutions(capture: capture, output: output)
+    }
+    
+    func updateFromGooseEngine(stats: PipelineStats, settings: CaptureSettings) {
+        hudView?.updateFromGooseEngine(stats: stats, settings: settings)
     }
     
     var isVisible: Bool {

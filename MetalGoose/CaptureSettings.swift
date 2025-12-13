@@ -1,7 +1,6 @@
 import SwiftUI
 import MetalFX
 
-
 @available(macOS 26.0, *)
 final class CaptureSettings: ObservableObject {
     static let shared = CaptureSettings()
@@ -47,19 +46,19 @@ final class CaptureSettings: ObservableObject {
         
         var id: String { rawValue }
         
+        var usesMetalFX: Bool {
+            switch self {
+            case .off, .mgup1Fast: return false
+            case .mgup1, .mgup1Quality: return true
+            }
+        }
+        
         var description: String {
             switch self {
             case .off: return "No upscaling - original resolution passthrough"
             case .mgup1: return "MetalGoose Upscaler - Balanced MetalFX AI upscaling"
             case .mgup1Fast: return "MetalGoose Fast - Bilinear + Adaptive Sharpening"
             case .mgup1Quality: return "MetalGoose Quality - MetalFX Spatial + CAS"
-            }
-        }
-        
-        var usesMetalFX: Bool {
-            switch self {
-            case .off, .mgup1Fast: return false
-            case .mgup1, .mgup1Quality: return true
             }
         }
     }
@@ -143,8 +142,8 @@ final class CaptureSettings: ObservableObject {
         
         var description: String {
             switch self {
-            case .off: return String(localized: "No frame generation - lowest latency")
-            case .mgfg1: return String(localized: "MetalGoose Frame Generation - Optical flow interpolation")
+            case .off: return "No frame generation - lowest latency"
+            case .mgfg1: return "MetalGoose Frame Generation - Optical flow interpolation"
             }
         }
     }
@@ -235,29 +234,52 @@ final class CaptureSettings: ObservableObject {
         
         var id: String { rawValue }
         
-        var description: String {
-            switch self {
-            case .off:
-                return String(localized: "No anti-aliasing - sharpest but aliased", comment: "AA mode description: No AA")
-            case .fxaa:
-                return String(localized: "Fast Approximate AA - quick, slight blur", comment: "AA mode description: FXAA")
-            case .smaa:
-                return String(localized: "Subpixel Morphological AA - high quality edges", comment: "AA mode description: SMAA")
-            case .msaa:
-                return String(localized: "Multisample AA - hardware-like, clean edges", comment: "AA mode description: MSAA")
-            case .taa:
-                return String(localized: "Temporal AA - motion-compensated, best quality", comment: "AA mode description: TAA")
-            }
-        }
-        
         var isTemporal: Bool {
             return self == .taa
         }
+        
+        var description: String {
+            switch self {
+            case .off: return "No anti-aliasing - sharpest but aliased"
+            case .fxaa: return "Fast Approximate AA - quick, slight blur"
+            case .smaa: return "Subpixel Morphological AA - high quality edges"
+            case .msaa: return "Multisample AA - hardware-like, clean edges"
+            case .taa: return "Temporal AA - motion-compensated, best quality"
+            }
+        }
     }
     
+    enum VirtualResolution: String, CaseIterable, Identifiable {
+        case native = "Native"
+        case r1440p = "1440p (2560×1440)"
+        case r1080p = "1080p (1920×1080)"
+        case r900p = "900p (1600×900)"
+        case r720p = "720p (1280×720)"
+        
+        var id: String { rawValue }
+        
+        var size: CGSize? {
+            switch self {
+            case .native: return nil
+            case .r1440p: return CGSize(width: 2560, height: 1440)
+            case .r1080p: return CGSize(width: 1920, height: 1080)
+            case .r900p: return CGSize(width: 1600, height: 900)
+            case .r720p: return CGSize(width: 1280, height: 720)
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .native: return "No virtual display - original resolution"
+            case .r1440p: return "Virtual 1440p - good for 4K displays"
+            case .r1080p: return "Virtual 1080p - 2-3× FPS boost typical"
+            case .r900p: return "Virtual 900p - significant FPS boost"
+            case .r720p: return "Virtual 720p - maximum FPS boost"
+            }
+        }
+    }
     
     @Published var renderScale: RenderScale = .native
-    
     @Published var scalingType: ScalingType = .off
     @Published var qualityMode: QualityMode = .ultra
     @Published var scaleFactor: ScaleFactorOption = .x1
@@ -269,6 +291,9 @@ final class CaptureSettings: ObservableObject {
     
     @Published var aaMode: AAMode = .off
     
+    @Published var virtualResolution: VirtualResolution = .native
+    @Published var useGooseEngine: Bool = false
+    
     @Published var captureCursor: Bool = true
     @Published var reduceLatency: Bool = true
     @Published var adaptiveSync: Bool = true
@@ -278,7 +303,6 @@ final class CaptureSettings: ObservableObject {
     @Published var sharpening: Float = 0.5
     @Published var temporalBlend: Float = 0.1
     @Published var motionScale: Float = 1.0
-    
     
     var effectiveUpscaleFactor: Float {
         guard scalingType != .off else { return 1.0 }
@@ -325,7 +349,6 @@ final class CaptureSettings: ObservableObject {
         return max(1, min(4, Int(ceil(needed))))
     }
     
-    
     func saveProfile(_ name: String) {
         let defaults = UserDefaults.standard
         let prefix = "MetalGoose.Profile.\(name)."
@@ -347,6 +370,8 @@ final class CaptureSettings: ObservableObject {
         defaults.set(sharpening, forKey: prefix + "sharpening")
         defaults.set(temporalBlend, forKey: prefix + "temporalBlend")
         defaults.set(motionScale, forKey: prefix + "motionScale")
+        defaults.set(virtualResolution.rawValue, forKey: prefix + "virtualResolution")
+        defaults.set(useGooseEngine, forKey: prefix + "useGooseEngine")
         
         if !profiles.contains(name) {
             profiles.append(name)
@@ -359,66 +384,44 @@ final class CaptureSettings: ObservableObject {
         let prefix = "MetalGoose.Profile.\(name)."
         
         if let rs = defaults.string(forKey: prefix + "renderScale"),
-           let renderScaleValue = RenderScale(rawValue: rs) {
-            renderScale = renderScaleValue
-        }
-        if let st = defaults.string(forKey: prefix + "scalingType"),
-           let scalingTypeValue = ScalingType(rawValue: st) {
-            scalingType = scalingTypeValue
-        }
-        if let qm = defaults.string(forKey: prefix + "qualityMode"),
-           let qualityModeValue = QualityMode(rawValue: qm) {
-            qualityMode = qualityModeValue
-        }
-        if let sf = defaults.string(forKey: prefix + "scaleFactor"),
-           let scaleFactorValue = ScaleFactorOption(rawValue: sf) {
-            scaleFactor = scaleFactorValue
-        }
-        if let fg = defaults.string(forKey: prefix + "frameGenMode"),
-           let frameGenModeValue = FrameGenMode(rawValue: fg) {
-            frameGenMode = frameGenModeValue
-        }
-        if let ft = defaults.string(forKey: prefix + "frameGenType"),
-           let frameGenTypeValue = FrameGenType(rawValue: ft) {
-            frameGenType = frameGenTypeValue
-        }
-        if let tfps = defaults.string(forKey: prefix + "targetFPS"),
-           let targetFPSValue = TargetFPS(rawValue: tfps) {
-            targetFPS = targetFPSValue
-        }
-        if let fm = defaults.string(forKey: prefix + "frameGenMultiplier"),
-           let frameGenMultiplierValue = FrameGenMultiplier(rawValue: fm) {
-            frameGenMultiplier = frameGenMultiplierValue
-        }
-        if let aa = defaults.string(forKey: prefix + "aaMode"),
-           let aaModeValue = AAMode(rawValue: aa) {
-            aaMode = aaModeValue
-        }
+           let val = RenderScale(rawValue: rs) { renderScale = val }
         
-        if defaults.object(forKey: prefix + "captureCursor") != nil {
-            captureCursor = defaults.bool(forKey: prefix + "captureCursor")
-        }
-        if defaults.object(forKey: prefix + "reduceLatency") != nil {
-            reduceLatency = defaults.bool(forKey: prefix + "reduceLatency")
-        }
-        if defaults.object(forKey: prefix + "adaptiveSync") != nil {
-            adaptiveSync = defaults.bool(forKey: prefix + "adaptiveSync")
-        }
-        if defaults.object(forKey: prefix + "showMGHUD") != nil {
-            showMGHUD = defaults.bool(forKey: prefix + "showMGHUD")
-        }
-        if defaults.object(forKey: prefix + "vsync") != nil {
-            vsync = defaults.bool(forKey: prefix + "vsync")
-        }
-        if defaults.object(forKey: prefix + "sharpening") != nil {
-            sharpening = defaults.float(forKey: prefix + "sharpening")
-        }
-        if defaults.object(forKey: prefix + "temporalBlend") != nil {
-            temporalBlend = defaults.float(forKey: prefix + "temporalBlend")
-        }
-        if defaults.object(forKey: prefix + "motionScale") != nil {
-            motionScale = defaults.float(forKey: prefix + "motionScale")
-        }
+        if let st = defaults.string(forKey: prefix + "scalingType"),
+           let val = ScalingType(rawValue: st) { scalingType = val }
+        
+        if let qm = defaults.string(forKey: prefix + "qualityMode"),
+           let val = QualityMode(rawValue: qm) { qualityMode = val }
+        
+        if let sf = defaults.string(forKey: prefix + "scaleFactor"),
+           let val = ScaleFactorOption(rawValue: sf) { scaleFactor = val }
+        
+        if let fg = defaults.string(forKey: prefix + "frameGenMode"),
+           let val = FrameGenMode(rawValue: fg) { frameGenMode = val }
+        
+        if let ft = defaults.string(forKey: prefix + "frameGenType"),
+           let val = FrameGenType(rawValue: ft) { frameGenType = val }
+        
+        if let tf = defaults.string(forKey: prefix + "targetFPS"),
+           let val = TargetFPS(rawValue: tf) { targetFPS = val }
+        
+        if let fm = defaults.string(forKey: prefix + "frameGenMultiplier"),
+           let val = FrameGenMultiplier(rawValue: fm) { frameGenMultiplier = val }
+        
+        if let aa = defaults.string(forKey: prefix + "aaMode"),
+           let val = AAMode(rawValue: aa) { aaMode = val }
+           
+        if let vr = defaults.string(forKey: prefix + "virtualResolution"),
+           let val = VirtualResolution(rawValue: vr) { virtualResolution = val }
+        
+        if defaults.object(forKey: prefix + "captureCursor") != nil { captureCursor = defaults.bool(forKey: prefix + "captureCursor") }
+        if defaults.object(forKey: prefix + "reduceLatency") != nil { reduceLatency = defaults.bool(forKey: prefix + "reduceLatency") }
+        if defaults.object(forKey: prefix + "adaptiveSync") != nil { adaptiveSync = defaults.bool(forKey: prefix + "adaptiveSync") }
+        if defaults.object(forKey: prefix + "showMGHUD") != nil { showMGHUD = defaults.bool(forKey: prefix + "showMGHUD") }
+        if defaults.object(forKey: prefix + "vsync") != nil { vsync = defaults.bool(forKey: prefix + "vsync") }
+        if defaults.object(forKey: prefix + "sharpening") != nil { sharpening = defaults.float(forKey: prefix + "sharpening") }
+        if defaults.object(forKey: prefix + "temporalBlend") != nil { temporalBlend = defaults.float(forKey: prefix + "temporalBlend") }
+        if defaults.object(forKey: prefix + "motionScale") != nil { motionScale = defaults.float(forKey: prefix + "motionScale") }
+        if defaults.object(forKey: prefix + "useGooseEngine") != nil { useGooseEngine = defaults.bool(forKey: prefix + "useGooseEngine") }
         
         selectedProfile = name
     }
@@ -434,12 +437,11 @@ final class CaptureSettings: ObservableObject {
         let keys = ["renderScale", "scalingType", "qualityMode", "scaleFactor",
                     "frameGenMode", "frameGenType", "targetFPS", "frameGenMultiplier", "aaMode",
                     "captureCursor", "reduceLatency", "adaptiveSync",
-                    "showMGHUD", "vsync", "sharpening", "temporalBlend", "motionScale"]
+                    "showMGHUD", "vsync", "sharpening", "temporalBlend", "motionScale", "virtualResolution", "useGooseEngine"]
         for key in keys {
             defaults.removeObject(forKey: prefix + key)
         }
     }
-    
     
     init() {
         if let savedProfiles = UserDefaults.standard.array(forKey: "MetalGoose.Profiles") as? [String] {
@@ -448,7 +450,6 @@ final class CaptureSettings: ObservableObject {
         loadProfile("Default")
     }
 }
-
 
 struct QualityProfile {
     let scalerMode: MTLFXSpatialScalerColorProcessingMode

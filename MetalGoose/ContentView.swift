@@ -17,6 +17,12 @@ struct ContentView: View {
     @State private var isScalingActive = false
 
     @State private var directRenderer: DirectRenderer?
+    
+    @State private var gooseEngine: GooseEngine?
+    @State private var virtualDisplayManager: VirtualDisplayManager?
+    @State private var overlayManager: OverlayWindowManager?
+    @State private var gooseMtkView: MTKView?
+    @State private var windowMigrator: WindowMigrator?
 
     @State private var connectedProcessName: String = "-"
     @State private var connectedPID: Int32 = 0
@@ -154,9 +160,9 @@ struct ContentView: View {
         }
         .overlay(alignment: .bottomLeading) {
             Text(macOSVersionString)
-                .font(.caption2)
-                .foregroundColor(.gray.opacity(0.5))
-                .padding(6)
+            .font(.caption2)
+            .foregroundColor(.gray.opacity(0.5))
+            .padding(6)
         }
         .onAppear {
             startPermissionTimer()
@@ -196,7 +202,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             stop()
         }
-        .alert("Warning", isPresented: $showAlert) {
+        .alert("Version Info", isPresented: $showAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(alertMessage)
@@ -221,8 +227,8 @@ struct ContentView: View {
             } else {
                 Button("START SCALING") { startCountdown() }
                     .buttonStyle(ActionButtonStyle(color: .green))
-                    .disabled(!permissionsGranted)
-                    .opacity(permissionsGranted ? 1.0 : 0.5)
+                    .disabled(!permissionsGranted || !settings.useGooseEngine)
+                    .opacity((permissionsGranted && settings.useGooseEngine) ? 1.0 : 0.5)
             }
         }
         .padding(.bottom, 10)
@@ -230,77 +236,96 @@ struct ContentView: View {
 
     private var leftConfigColumn: some View {
         VStack(spacing: 16) {
-            ConfigPanel(title: String(localized: "Upscaling", defaultValue: "Upscaling")) {
-                    PickerRow(label: String(localized: "Method", defaultValue: "Method"),
-                              selection: $settings.scalingType,
-                              helpText: String(localized: "Upscaling mode:\n• Off\n• MGUP-1 / Fast / Quality",
-                                                defaultValue: "Upscaling mode:\n• Off\n• MGUP-1 / Fast / Quality"))
-
-                    if settings.scalingType != .off {
-                        PickerRow(label: String(localized: "Scale Factor", defaultValue: "Scale Factor"),
-                                  selection: $settings.scaleFactor,
-                                  helpText: String(localized: "Upscale multiplier (1.5x – 10x).",
-                                                    defaultValue: "Upscale multiplier (1.5x – 10x)."))
-
-                        PickerRow(label: String(localized: "Render Scale", defaultValue: "Render Scale"),
-                                  selection: $settings.renderScale,
-                                  helpText: String(localized: "Internal capture resolution %.",
-                                                    defaultValue: "Internal capture resolution %."))
-                    }
+            ConfigPanel(title: "Virtual Display") {
+                Toggle("Use GooseEngine", isOn: $settings.useGooseEngine)
+                    .toggleStyle(SwitchToggleStyle(tint: ACCENT_RED))
+                
+                if settings.useGooseEngine {
+                    PickerRow(label: "Resolution",
+                              selection: $settings.virtualResolution,
+                              helpText: "Lower = higher FPS. The game will render at this resolution.")
+                    
+                    Text(settings.virtualResolution.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+            }
+            
+            Group {
+                ConfigPanel(title: String(localized: "Upscaling", defaultValue: "Upscaling")) {
+                        PickerRow(label: String(localized: "Method", defaultValue: "Method"),
+                                  selection: $settings.scalingType,
+                                  helpText: String(localized: "Upscaling mode:\n• Off\n• MGUP-1 / Fast / Quality",
+                                                    defaultValue: "Upscaling mode:\n• Off\n• MGUP-1 / Fast / Quality"))
 
-            ConfigPanel(title: String(localized: "Frame Generation", defaultValue: "Frame Generation")) {
-                   PickerRow(label: String(localized: "Mode", defaultValue: "Mode"),
-                             selection: $settings.frameGenMode,
-                             helpText: String(localized: "• Off: lowest latency\n• MGFG-1: optical-flow generation",
-                                               defaultValue: "• Off: lowest latency\n• MGFG-1: optical-flow generation"))
+                        if settings.scalingType != .off {
+                            PickerRow(label: String(localized: "Scale Factor", defaultValue: "Scale Factor"),
+                                      selection: $settings.scaleFactor,
+                                      helpText: String(localized: "Upscale multiplier (1.5x – 10x).",
+                                                        defaultValue: "Upscale multiplier (1.5x – 10x)."))
 
-                   if settings.frameGenMode != .off {
-                       Text(settings.frameGenMode.description)
-                           .font(.caption)
-                           .foregroundColor(.secondary)
-                           .padding(.leading, 4)
+                            PickerRow(label: String(localized: "Render Scale", defaultValue: "Render Scale"),
+                                      selection: $settings.renderScale,
+                                      helpText: String(localized: "Internal capture resolution %.",
+                                                        defaultValue: "Internal capture resolution %."))
+                        }
+                    }
 
-                       PickerRow(label: String(localized: "Type", defaultValue: "Type"),
-                                 selection: $settings.frameGenType,
-                                 helpText: String(localized: "Adaptive or Fixed", defaultValue: "Adaptive or Fixed"))
+                ConfigPanel(title: String(localized: "Frame Generation", defaultValue: "Frame Generation")) {
+                       PickerRow(label: String(localized: "Mode", defaultValue: "Mode"),
+                                 selection: $settings.frameGenMode,
+                                 helpText: String(localized: "• Off: lowest latency\n• MGFG-1: optical-flow generation",
+                                                   defaultValue: "• Off: lowest latency\n• MGFG-1: optical-flow generation"))
 
-                       if settings.frameGenType == .adaptive {
-                           PickerRow(label: String(localized: "Target FPS", defaultValue: "Target FPS"),
-                                     selection: $settings.targetFPS,
-                                     helpText: String(localized: "Target FPS.", defaultValue: "Target FPS."))
-                       } else {
-                           PickerRow(label: String(localized: "Multiplier", defaultValue: "Multiplier"),
-                                     selection: $settings.frameGenMultiplier,
-                                     helpText: String(localized: "2× / 3× / 4×", defaultValue: "2× / 3× / 4×"))
+                       if settings.frameGenMode != .off {
+                           Text(settings.frameGenMode.description)
+                               .font(.caption)
+                               .foregroundColor(.secondary)
+                               .padding(.leading, 4)
+
+                           PickerRow(label: String(localized: "Type", defaultValue: "Type"),
+                                     selection: $settings.frameGenType,
+                                     helpText: String(localized: "Adaptive or Fixed", defaultValue: "Adaptive or Fixed"))
+
+                           if settings.frameGenType == .adaptive {
+                               PickerRow(label: String(localized: "Target FPS", defaultValue: "Target FPS"),
+                                         selection: $settings.targetFPS,
+                                         helpText: String(localized: "Target FPS.", defaultValue: "Target FPS."))
+                           } else {
+                               PickerRow(label: String(localized: "Multiplier", defaultValue: "Multiplier"),
+                                         selection: $settings.frameGenMultiplier,
+                                         helpText: String(localized: "2× / 3× / 4×", defaultValue: "2× / 3× / 4×"))
+                           }
+
+                           ToggleRow(label: String(localized: "Reduce Latency", defaultValue: "Reduce Latency"),
+                                     isOn: $settings.reduceLatency,
+                                     helpText: String(localized: "Optimized pacing & submission.",
+                                                       defaultValue: "Optimized pacing & submission."))
                        }
-
-                       ToggleRow(label: String(localized: "Reduce Latency", defaultValue: "Reduce Latency"),
-                                 isOn: $settings.reduceLatency,
-                                 helpText: String(localized: "Optimized pacing & submission.",
-                                                   defaultValue: "Optimized pacing & submission."))
                    }
-               }
 
-               ConfigPanel(title: String(localized: "Anti-Aliasing", defaultValue: "Anti-Aliasing")) {
-                   PickerRow(label: String(localized: "Mode", defaultValue: "Mode"),
-                             selection: $settings.aaMode,
-                             helpText: String(localized: "FXAA / SMAA / MSAA-like / TAA",
-                                               defaultValue: "FXAA / SMAA / MSAA-like / TAA"))
+                   ConfigPanel(title: String(localized: "Anti-Aliasing", defaultValue: "Anti-Aliasing")) {
+                       PickerRow(label: String(localized: "Mode", defaultValue: "Mode"),
+                                 selection: $settings.aaMode,
+                                 helpText: String(localized: "FXAA / SMAA / MSAA-like / TAA",
+                                                   defaultValue: "FXAA / SMAA / MSAA-like / TAA"))
 
-                   if settings.aaMode != .off {
-                       Text(settings.aaMode.description)
-                           .font(.caption)
-                           .foregroundColor(.secondary)
+                       if settings.aaMode != .off {
+                           Text(settings.aaMode.description)
+                               .font(.caption)
+                               .foregroundColor(.secondary)
+                           }
                    }
-               }
+            }
+            .disabled(!settings.useGooseEngine)
+            .opacity(settings.useGooseEngine ? 1.0 : 0.5)
         }
     }
 
     private var rightConfigColumn: some View {
         VStack(spacing: 16) {
 
-            if settings.scalingType == .mgup1 {
+            if settings.useGooseEngine && settings.scalingType == .mgup1 {
                 ConfigPanel(title: String(localized: "MGUP-1 Settings", comment: "Panel title: MGUP-1 settings")) {
                     PickerRow(label: String(localized: "Quality", comment: "Label: Quality"),
                               selection: $settings.qualityMode,
@@ -312,22 +337,26 @@ struct ContentView: View {
                 }
             }
 
-            ConfigPanel(title: String(localized: "Display Settings", comment: "Panel title: Display settings")) {
-                ToggleRow(label: String(localized: "Show MG HUD", comment: "Toggle label"), isOn: $settings.showMGHUD,
-                          helpText: String(localized: "Overlay", comment: "Toggle help text"))
+            Group {
+                ConfigPanel(title: String(localized: "Display Settings", comment: "Panel title: Display settings")) {
+                    ToggleRow(label: String(localized: "Show MG HUD", comment: "Toggle label"), isOn: $settings.showMGHUD,
+                              helpText: String(localized: "Overlay", comment: "Toggle help text"))
 
-                ToggleRow(label: String(localized: "Capture Cursor", comment: "Toggle label"), isOn: $settings.captureCursor,
-                          helpText: String(localized: "Include cursor", comment: "Toggle help text"))
+                    ToggleRow(label: String(localized: "Capture Cursor", comment: "Toggle label"), isOn: $settings.captureCursor,
+                              helpText: String(localized: "Include cursor", comment: "Toggle help text"))
 
-                ToggleRow(label: String(localized: "VSync", comment: "Toggle label"), isOn: $settings.vsync,
-                          helpText: String(localized: "Sync to display", comment: "Toggle help text"))
+                    ToggleRow(label: String(localized: "VSync", comment: "Toggle label"), isOn: $settings.vsync,
+                              helpText: String(localized: "Sync to display", comment: "Toggle help text"))
 
-                ToggleRow(label: String(localized: "Adaptive Sync", comment: "Toggle label"), isOn: $settings.adaptiveSync,
-                          helpText: String(localized: "Auto pacing", comment: "Toggle help text"))
+                    ToggleRow(label: String(localized: "Adaptive Sync", comment: "Toggle label"), isOn: $settings.adaptiveSync,
+                              helpText: String(localized: "Auto pacing", comment: "Toggle help text"))
 
-                SliderRow(label: String(localized: "Sharpness", comment: "Slider label"), value: $settings.sharpening, range: 0...1,
-                          helpText: String(localized: "CAS intensity", comment: "Slider help text"))
+                    SliderRow(label: String(localized: "Sharpness", comment: "Slider label"), value: $settings.sharpening, range: 0...1,
+                              helpText: String(localized: "CAS intensity", comment: "Slider help text"))
+                }
             }
+            .disabled(!settings.useGooseEngine)
+            .opacity(settings.useGooseEngine ? 1.0 : 0.5)
         }
     }
 
@@ -352,6 +381,159 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func initializeGooseEngine() {
+        guard gooseEngine == nil else { return }
+        
+        guard let engine = GooseEngine() else {
+            alertMessage = "GooseEngine failed to initialize"
+            showAlert = true
+            return
+        }
+        
+        gooseEngine = engine
+        virtualDisplayManager = VirtualDisplayManager()
+        
+        engine.onWindowLost = {
+            Task { @MainActor in
+                self.stopGooseCapture()
+            }
+        }
+    }
+    
+    private func startGooseCapture() {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != NSRunningApplication.current.processIdentifier else {
+            alertMessage = "Please switch to the target window before starting."
+            showAlert = true
+            return
+        }
+        
+        let opts: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard let list = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]],
+              let targetInfo = list.first(where: { ($0[kCGWindowOwnerPID as String] as? Int32) == app.processIdentifier }),
+              let wid = targetInfo[kCGWindowNumber as String] as? CGWindowID else {
+            alertMessage = "Target window not found."
+            showAlert = true
+            return
+        }
+        
+        if gooseEngine == nil { initializeGooseEngine() }
+        if virtualDisplayManager == nil { virtualDisplayManager = VirtualDisplayManager() }
+        if windowMigrator == nil { windowMigrator = WindowMigrator() }
+        if overlayManager == nil { overlayManager = OverlayWindowManager() }
+        
+        guard let engine = gooseEngine,
+              let vdManager = virtualDisplayManager,
+              let migrator = windowMigrator,
+              let overlay = overlayManager else { return }
+        
+        guard let mainScreen = NSScreen.main else {
+            alertMessage = "No main display found."
+            showAlert = true
+            return
+        }
+        let outputSize = mainScreen.frame.size
+        
+        let virtualRes = settings.virtualResolution.size ?? CGSize(width: 1280, height: 720)
+        guard let virtualDisplayID = vdManager.createDisplay(config: .custom(
+            width: UInt32(virtualRes.width),
+            height: UInt32(virtualRes.height),
+            refreshRate: 60.0
+        )) else {
+            alertMessage = vdManager.lastError ?? "Failed to create virtual display"
+            showAlert = true
+            return
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let origin = vdManager.getDisplayOrigin() {
+                if migrator.moveWindow(pid: app.processIdentifier, windowID: wid, to: origin) {
+                } else {
+                }
+            }
+            
+            engine.configure(
+                virtualResolution: virtualRes,
+                outputSize: outputSize,
+                sharpness: settings.sharpening,
+                frameGenEnabled: settings.frameGenMode != .off
+            )
+            
+            Task {
+                let success = await engine.startCaptureFromDisplay(displayID: virtualDisplayID)
+                if success {
+                    connectedProcessName = app.localizedName ?? "Unknown"
+                    connectedPID = app.processIdentifier
+                    connectedWindowID = wid
+                    connectedSize = virtualRes
+                    isScalingActive = true
+                    
+                    let config = OverlayWindowConfig(
+                        targetScreen: mainScreen,
+                        windowFrame: mainScreen.frame,
+                        size: mainScreen.frame.size,
+                        refreshRate: 120.0,
+                        vsyncEnabled: settings.vsync,
+                        adaptiveSyncEnabled: settings.adaptiveSync,
+                        passThrough: true
+                    )
+                    
+                    if overlay.createOverlay(config: config) {
+                        let mtkView = MTKView(frame: CGRect(origin: .zero, size: mainScreen.frame.size))
+                        overlay.setMTKView(mtkView)
+                        engine.attachToView(mtkView)
+                        gooseMtkView = mtkView
+                    }
+                    
+                    NSApp.setActivationPolicy(.accessory)
+                    NSApp.deactivate()
+                    startStatsTimer()
+                    
+                    if settings.showMGHUD {
+                        hudController.show(compact: false)
+                        hudController.setDeviceName(engine.deviceName)
+                        hudController.setResolutions(capture: virtualRes, output: outputSize)
+                    }
+                } else {
+                    alertMessage = engine.lastError ?? "Display capture failed"
+                    showAlert = true
+                    migrator.restoreWindow()
+                    vdManager.destroyDisplay()
+                }
+            }
+        }
+    }
+    
+    private func stopGooseCapture() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        
+        statsTimer?.invalidate()
+        statsTimer = nil
+        
+        gooseEngine?.detachFromView()
+        overlayManager?.destroyOverlay()
+        gooseMtkView = nil
+        
+        gooseEngine?.stopCapture()
+        
+        windowMigrator?.restoreWindow()
+        
+        virtualDisplayManager?.destroyDisplay()
+        
+        isScalingActive = false
+        currentFPS = 0
+        interpolatedFPS = 0
+        processingTime = 0
+        connectedProcessName = "-"
+        connectedPID = 0
+        connectedWindowID = 0
+        connectedSize = .zero
+        targetDisplayID = nil
+        
+        hudController.hide()
+    }
 
     private func setupHotkeys() {
         hotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
@@ -372,8 +554,19 @@ struct ContentView: View {
 
     private func toggleScaling() {
         guard permissionsGranted else { return }
-        if isScalingActive { stop() }
-        else { startDirectCapture() }
+        if isScalingActive {
+            if settings.useGooseEngine {
+                stopGooseCapture()
+            } else {
+                stop()
+            }
+        } else {
+            if settings.useGooseEngine {
+                startGooseCapture()
+            } else {
+                startDirectCapture()
+            }
+        }
     }
 
     private func startPermissionTimer() {
@@ -388,7 +581,16 @@ struct ContentView: View {
         statsTimer?.invalidate()
         statsTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [self] _ in
             Task { @MainActor in
-                if let renderer = directRenderer {
+                if settings.useGooseEngine, let engine = gooseEngine {
+                    let stats = engine.stats
+                    currentFPS = stats.captureFPS
+                    interpolatedFPS = stats.interpolatedFPS
+                    processingTime = Double(stats.frameTime)
+                    
+                    if settings.showMGHUD {
+                        hudController.updateFromGooseEngine(stats: stats, settings: settings)
+                    }
+                } else if let renderer = directRenderer {
                     currentFPS = renderer.currentFPS
                     interpolatedFPS = renderer.interpolatedFPS
                     processingTime = renderer.processingTime
@@ -409,7 +611,11 @@ struct ContentView: View {
             else {
                 timer.invalidate()
                 isCountingDown = false
-                startDirectCapture()
+                if settings.useGooseEngine {
+                    startGooseCapture()
+                } else {
+                    startDirectCapture()
+                }
             }
         }
     }

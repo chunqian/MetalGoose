@@ -26,6 +26,11 @@ struct OverlayWindowConfig {
     }
 }
 
+class NonActivatingWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
+
 @available(macOS 26.0, *)
 @MainActor
 final class OverlayWindowManager: ObservableObject {
@@ -81,7 +86,7 @@ final class OverlayWindowManager: ObservableObject {
         let frame = config.windowFrame ?? screen.frame
         currentSize = frame.size
         
-        let window = NSWindow(
+        let window = NonActivatingWindow(
             contentRect: frame,
             styleMask: [.borderless],
             backing: .buffered,
@@ -90,13 +95,13 @@ final class OverlayWindowManager: ObservableObject {
         )
         
         window.isReleasedWhenClosed = false
-        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)))
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.screenSaverWindow)) + 1)
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.ignoresMouseEvents = config.passThrough
-        window.acceptsMouseMovedEvents = !config.passThrough
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .fullScreenPrimary, .stationary]
+        window.ignoresMouseEvents = true 
+        window.acceptsMouseMovedEvents = false
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         
         overlayWindow = window
         window.orderFrontRegardless()

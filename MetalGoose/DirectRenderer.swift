@@ -103,37 +103,37 @@ final class DirectRenderer: NSObject, MTKViewDelegate {
         
         var cfg = DirectEngineConfig()
         
-        cfg.upscaleMode = mapUpscale(settings.scalingType)
-        cfg.renderScale = mapRenderScale(settings.renderScale)
-        cfg.scaleFactor = settings.effectiveUpscaleFactor
-        cfg.frameGenMode = mapFrameGen(settings.frameGenMode)
-        cfg.frameGenType = mapFrameGenType(settings.frameGenType)
-        cfg.frameGenQuality = mapFrameGenQuality(settings.qualityMode)
-        cfg.frameGenMultiplier = Int32(settings.frameGenMultiplier.intValue)
+        cfg.upscaleMode = .off
+        cfg.renderScale = .scaleNative
+        cfg.scaleFactor = 1.0
+        cfg.frameGenMode = .off
+        cfg.frameGenType = .fixed
+        cfg.frameGenQuality = .performance
+        cfg.frameGenMultiplier = 1
         cfg.adaptiveTargetFPS = Int32(settings.targetFPS.intValue)
-        cfg.aaMode = mapAA(settings.aaMode)
+        cfg.aaMode = .off
         cfg.aaThreshold = 0.166
         cfg.baseWidth = Int32(sourceSize?.width ?? 0)
         cfg.baseHeight = Int32(sourceSize?.height ?? 0)
         cfg.outputWidth = Int32(outputSize?.width ?? 0)
         cfg.outputHeight = Int32(outputSize?.height ?? 0)
         cfg.targetFPS = Int32(targetFPS)
-        cfg.useMotionVectors = true
+        cfg.useMotionVectors = false
         cfg.vsyncEnabled = settings.vsync
         cfg.reduceLatency = settings.reduceLatency
         cfg.adaptiveSync = settings.adaptiveSync
         cfg.captureMouseCursor = settings.captureCursor
-        cfg.sharpness = settings.sharpening
-        cfg.temporalBlend = settings.temporalBlend
-        cfg.motionScale = settings.motionScale
+        cfg.sharpness = 0.0
+        cfg.temporalBlend = 0.0
+        cfg.motionScale = 0.0
         configuredTargetFPS = targetFPS
         configuredOutputSize = outputSize ?? sourceSize
         
         DirectEngine_SetConfig(engine, cfg)
         
-        frameGenEnabled = settings.isFrameGenEnabled
-        frameGenType = settings.frameGenType
-        frameGenMultiplier = settings.frameGenMultiplier.intValue
+        frameGenEnabled = false
+        frameGenType = .fixed
+        frameGenMultiplier = 1
         reduceLatencyEnabled = settings.reduceLatency
         vsyncEnabled = settings.vsync
         adaptiveSyncEnabled = settings.adaptiveSync

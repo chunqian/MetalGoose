@@ -122,6 +122,7 @@
     },
     "Fast Approximate AA - quick, slight blur" : {
       "comment" : "AA mode description: FXAA",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -210,6 +211,7 @@
       }
     },
     "MetalGoose Frame Generation - Optical flow interpolation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -272,6 +274,7 @@
     },
     "Multisample AA - hardware-like, clean edges" : {
       "comment" : "AA mode description: MSAA",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -283,6 +286,7 @@
     },
     "No anti-aliasing - sharpest but aliased" : {
       "comment" : "AA mode description: No AA",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -293,6 +297,7 @@
       }
     },
     "No frame generation - lowest latency" : {
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -450,6 +455,7 @@
     },
     "Subpixel Morphological AA - high quality edges" : {
       "comment" : "AA mode description: SMAA",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -477,6 +483,7 @@
     },
     "Temporal AA - motion-compensated, best quality" : {
       "comment" : "AA mode description: TAA",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -505,6 +512,9 @@
     "Upscaling mode:\n• Off\n• MGUP-1 / Fast / Quality" : {
 
     },
+    "Use GooseEngine" : {
+
+    },
     "Using MetalFX Spatial AI Upscaling" : {
       "comment" : "Description text",
       "localizations" : {
@@ -515,6 +525,9 @@
           }
         }
       }
+    },
+    "Version Info" : {
+
     },
     "VSync" : {
       "comment" : "Toggle label",
@@ -528,6 +541,7 @@
       }
     },
     "Warning" : {
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
