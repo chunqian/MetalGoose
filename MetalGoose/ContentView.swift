@@ -2,11 +2,6 @@ import SwiftUI
 import MetalKit
 import ApplicationServices
 
-let BG_COLOR = Color(red: 0.1, green: 0.1, blue: 0.12)
-let PANEL_COLOR = Color(red: 0.15, green: 0.15, blue: 0.18)
-let ACCENT_RED = Color(red: 0.8, green: 0.2, blue: 0.2)
-let TEXT_COLOR = Color.white.opacity(0.9)
-
 @available(macOS 26.0, *)
 struct ContentView: View {
 
@@ -69,7 +64,6 @@ struct ContentView: View {
                         .cornerRadius(8)
                     Text("MetalGoose")
                         .font(.headline)
-                        .foregroundColor(.white)
                 }
                 .padding([.top, .horizontal])
 
@@ -131,7 +125,6 @@ struct ContentView: View {
 
             }
             .frame(minWidth: 200)
-            .background(Color.black.opacity(0.3))
             .disabled(!permissionsGranted)
             .navigationTitle("MetalGoose")
 
@@ -168,7 +161,6 @@ struct ContentView: View {
                 }
                 .padding(24)
             }
-            .background(BG_COLOR)
         }
         .overlay(alignment: .bottomLeading) {
             Text(macOSVersionString)
@@ -234,7 +226,7 @@ struct ContentView: View {
             } else if isCountingDown {
                 Text("\(countdown)")
                     .font(.title2)
-                    .foregroundColor(ACCENT_RED)
+                    .foregroundColor(.red)
 
             } else {
                 Button("START SCALING") { startCountdown() }
@@ -250,7 +242,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             ConfigPanel(title: "Virtual Display") {
                 Toggle("Use GooseEngine", isOn: $settings.useGooseEngine)
-                    .toggleStyle(SwitchToggleStyle(tint: ACCENT_RED))
+                    .toggleStyle(SwitchToggleStyle(tint: .red))
                 
                 if settings.useGooseEngine {
                     PickerRow(label: "Resolution",
@@ -776,13 +768,13 @@ struct ConfigPanel<Content: View>: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text(title).font(.title3).bold().foregroundColor(.white)
+            Text(title).font(.title3).bold()
             Divider().background(Color.gray)
             content
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PANEL_COLOR)
+        .background(Color(NSColor.windowBackgroundColor		))
         .cornerRadius(10)
     }
 }
@@ -834,7 +826,6 @@ struct SliderRow: View {
                 .frame(width: 120)
             Text(String(format: "%.2f", value))
                 .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.white)
                 .frame(width: 40, alignment: .trailing)
         }
         if let helpText { row.help(helpText) } else { row }
@@ -849,7 +840,6 @@ struct InfoRow: View {
             Text(label).foregroundColor(.gray)
             Spacer()
             Text(value)
-                .foregroundColor(.white)
                 .font(.system(.body, design: .monospaced))
         }
     }
@@ -863,7 +853,6 @@ struct ActionButtonStyle: ButtonStyle {
             .frame(minWidth: 120)
             .frame(height: 36)
             .background(color.opacity(configuration.isPressed ? 0.7 : 1.0))
-            .foregroundColor(.white)
             .cornerRadius(8)
             .fontWeight(.bold)
     }
@@ -899,7 +888,6 @@ struct StatusPill: View {
                 .foregroundColor(ok ? .green : .orange)
                 .font(.system(.caption, design: .monospaced))
             Text(label)
-                .foregroundColor(.white)
                 .font(.caption)
             if !ok {
                 Button("GRANT") { action() }
@@ -909,7 +897,7 @@ struct StatusPill: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.black.opacity(0.4))
         .cornerRadius(6)
     }
 }
+

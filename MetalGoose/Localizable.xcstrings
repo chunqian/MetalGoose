@@ -56,7 +56,14 @@
       }
     },
     "Adaptive or Fixed" : {
-
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaptív vagy fix"
+          }
+        }
+      }
     },
     "Adaptive Sync" : {
       "comment" : "Toggle label",
@@ -120,18 +127,6 @@
         }
       }
     },
-    "Fast Approximate AA - quick, slight blur" : {
-      "comment" : "AA mode description: FXAA",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gyors közelítéses élsimítás - gyors"
-          }
-        }
-      }
-    },
     "FPS" : {
 
     },
@@ -179,7 +174,15 @@
       }
     },
     "Include cursor" : {
-      "comment" : "Toggle help text"
+      "comment" : "Toggle help text",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurzor mutatása"
+          }
+        }
+      }
     },
     "Internal capture resolution %." : {
 
@@ -206,17 +209,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "MetalGoose"
-          }
-        }
-      }
-    },
-    "MetalGoose Frame Generation - Optical flow interpolation" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MetalGoose Képkocka-generálás – Optikai áramlás interpoláció"
           }
         }
       }
@@ -272,41 +264,6 @@
         }
       }
     },
-    "Multisample AA - hardware-like, clean edges" : {
-      "comment" : "AA mode description: MSAA",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Többszörös mintavételezéses élsimítás - Hardver szerű"
-          }
-        }
-      }
-    },
-    "No anti-aliasing - sharpest but aliased" : {
-      "comment" : "AA mode description: No AA",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nincs élsimítás – a legélesebb, látható élek"
-          }
-        }
-      }
-    },
-    "No frame generation - lowest latency" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Képkockagenerálás letiltása - legalacsonyabb késleltetés"
-          }
-        }
-      }
-    },
     "OK" : {
       "localizations" : {
         "hu" : {
@@ -338,17 +295,6 @@
     },
     "Profile: \"%@\"" : {
 
-    },
-    "Profile: \"Default\"" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alapértelmezett profil"
-          }
-        }
-      }
     },
     "Quality" : {
       "comment" : "Label: Quality",
@@ -453,18 +399,6 @@
         }
       }
     },
-    "Subpixel Morphological AA - high quality edges" : {
-      "comment" : "AA mode description: SMAA",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Szubpixeles Morfológiai élsimítás – magas minőségű élek"
-          }
-        }
-      }
-    },
     "Sync to display" : {
       "comment" : "Toggle help text"
     },
@@ -479,16 +413,11 @@
       }
     },
     "Target FPS." : {
-
-    },
-    "Temporal AA - motion-compensated, best quality" : {
-      "comment" : "AA mode description: TAA",
-      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporális élsimítás – mozgáskompenzált, legjobb minőség"
+            "value" : "Cél FPS"
           }
         }
       }
@@ -497,7 +426,14 @@
 
     },
     "Upscale multiplier (1.5x – 10x)." : {
-
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Felskálázás szorzója (1.5x - 10x)."
+          }
+        }
+      }
     },
     "Upscaling" : {
       "localizations" : {
@@ -513,7 +449,14 @@
 
     },
     "Use GooseEngine" : {
-
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GooseEngine motor használata"
+          }
+        }
+      }
     },
     "Using MetalFX Spatial AI Upscaling" : {
       "comment" : "Description text",
@@ -527,7 +470,14 @@
       }
     },
     "Version Info" : {
-
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verzió"
+          }
+        }
+      }
     },
     "VSync" : {
       "comment" : "Toggle label",
@@ -536,17 +486,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vertikális szinkron"
-          }
-        }
-      }
-    },
-    "Warning" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Figyelem"
           }
         }
       }
